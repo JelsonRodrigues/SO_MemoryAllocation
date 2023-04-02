@@ -7,7 +7,7 @@ Este projeito foi feito utilizando como base a implementação [BinPacking2D](ht
 ## Demo
 
 https://user-images.githubusercontent.com/88675696/229370302-b666a061-c92d-42c1-a54b-b9d5d4a0ce65.mp4
-
+![Demo](assets/demo.png "Demo")
 
 ## Build: Linux
  1. Instale as dependências
