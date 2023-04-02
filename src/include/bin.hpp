@@ -49,6 +49,9 @@ public:
 	{
 		uint32_t item_width = item.getWidth();
 		uint32_t item_height = item.getHeight();
+		
+		// Only the memory of one process can be at a memory partition
+		if (items.size() > 0) return false;
 		if (item_height > height || item_width > width) return false;
 		if (item_height == 0 || item_width == 0) return false;
 		if (area_free < item.getArea()) return false;
@@ -96,6 +99,51 @@ public:
 		return false;
 	}
 
+	bool canFit(const Item &item){
+		uint32_t item_width = item.getWidth();
+		uint32_t item_height = item.getHeight();
+		
+		// Only the memory of one process can be at a memory partition
+		if (items.size() > 0) return false;
+		if (item_height > height || item_width > width) return false;
+		if (item_height == 0 || item_width == 0) return false;
+		if (area_free < item.getArea()) return false;
+
+		for (uint32_t offset_x = 0; offset_x <= (width - item_width); offset_x++) {
+			
+			// Checks if the adjacent lines have at least the height that is needed to fit the item
+			bool allLinesHaveSpace = true;
+			for (int c = 0; c < item_width; c++) {
+				if (lines[c + offset_x].getSumOfSegmentsFree() < item_height) {
+					allLinesHaveSpace = false;
+					offset_x = c + offset_x;
+					break;
+				}
+			}
+
+			if (allLinesHaveSpace){
+				for (uint32_t offset_y = 0; offset_y <= (height - item_height); offset_y++){
+					Segment cur_segment = Segment(offset_y, offset_y + item_height);
+
+					// If this line has the segment free, then search on the adjacent lines for the same segment
+					bool allLinesHaveSegment = true;
+					for(int c = 0; c < item_width; c++) {
+						if (lines[c + offset_x].containsSegment(cur_segment) == -1) {
+							allLinesHaveSegment = false;
+							break;
+						}
+					}
+					if (allLinesHaveSegment){
+						return true;
+					}
+				}
+			}
+		}
+
+
+		return false;
+	}
+
 	olc::vi2d getLeftUpperCorner() const {
 		return coordinates;
 	}
@@ -122,6 +170,17 @@ public:
 		return true;
 	}
 
+	bool restore(){
+		items.clear();
+		lines.clear();
+		for (int c = 0; c < width; c++) {
+			lines.push_back(Line(Segment(0, height)));
+		}
+		area_free = width * height;
+
+		return true;
+	}
+
 	const std::vector<Item>& getItemsInBin() const {
 		return items;
 	}
@@ -131,11 +190,11 @@ public:
 		return width * height;
 	}
 
-	uint32_t getAreaFree() {
+	uint32_t getAreaFree() const {
 		return area_free;
 	}
 
-	uint32_t getAreaUsed() {
+	uint32_t getAreaUsed() const {
 		return (width * height) - area_free;
 	}
 };

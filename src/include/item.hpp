@@ -55,7 +55,7 @@ public:
 		return color;
 	}
 
-	uint32_t getArea() {
+	uint32_t getArea() const {
 		return widht * heigth;
 	}
 };
