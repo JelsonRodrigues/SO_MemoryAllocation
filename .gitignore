@@ -1,6 +1,5 @@
 /.vscode
 .vscode/
-bin/*.exe
 /logs
 *.exe
 /app
@@ -10,3 +9,4 @@ bin/*.exe
 *.ilk
 *.obj
 *.pdb
+/bin
