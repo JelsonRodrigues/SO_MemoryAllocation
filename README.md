@@ -5,7 +5,9 @@ Este projeito foi feito utilizando como base a implementação [BinPacking2D](ht
 
 
 ## Demo
-https://github.com/JelsonRodrigues/SO_MemoryAllocation/tree/master/assets/demo.mp4
+
+https://user-images.githubusercontent.com/88675696/229370302-b666a061-c92d-42c1-a54b-b9d5d4a0ce65.mp4
+
 
 ## Build: Linux
  1. Instale as dependências
@@ -37,7 +39,10 @@ https://github.com/JelsonRodrigues/SO_MemoryAllocation/tree/master/assets/demo.m
   ```
   5. Instale o Make (Caso ainda não tenha instalado)
   ```
-  winget install GnuWin32.Make
+  winget install 
+
+
+GnuWin32.Make
   ```
   6. Adicione o Make ao PATH, o caminho é `C:\Program Files (x86)\GnuWin32\bin`
   7. Adicione o MinGW ao PATH, o caminho padrão é `C:\msys64\mingw64\bin`
