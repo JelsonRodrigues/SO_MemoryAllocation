@@ -5,16 +5,10 @@ WFLAGS = -luser32 -lgdi32 -lopengl32 -lgdiplus -lShlwapi -ldwmapi -lstdc++fs -st
 WINPATH = src
 FILE = main
 
-all: msvc_debug run_windows
+all: windows run_windows
 
 linux: $(WINPATH)/$(FILE).cpp
 	$(CXX) $(CXXFLAGS) $(WINPATH)/$(FILE).cpp $(LFLAGS) -o bin/$(FILE)
-
-msvc_release: $(WINPATH)/$(FILE).cpp
-	cl /EHsc /openmp:llvm /O2 /Ot /std:c++17 /arch:AVX2 $(WINPATH)/$(FILE).cpp /Fdbin\vc100.pdb /Fobin\ /Fabin\ /link /out:bin\main.exe /pdb:bin\
-
-msvc_debug: $(WINPATH)/$(FILE).cpp
-	cl /EHsc /openmp:llvm /Ot /std:c++17 /arch:AVX2 $(WINPATH)/$(FILE).cpp /Fdbin\vc100.pdb /Fobin\ /Fabin\ /link /out:bin\main.exe /pdb:bin\
 
 windows: $(WINPATH)/$(FILE).cpp
 	$(CXX) $(CXXFLAGS) $(WINPATH)/$(FILE).cpp $(WFLAGS) -o bin/$(FILE)
