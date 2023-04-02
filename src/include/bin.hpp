@@ -103,8 +103,6 @@ public:
 		uint32_t item_width = item.getWidth();
 		uint32_t item_height = item.getHeight();
 		
-		// Only the memory of one process can be at a memory partition
-		if (items.size() > 0) return false;
 		if (item_height > height || item_width > width) return false;
 		if (item_height == 0 || item_width == 0) return false;
 		if (area_free < item.getArea()) return false;
@@ -159,14 +157,23 @@ public:
 		int32_t offset_y = newPosition.y - coordinates.y;
 		coordinates = newPosition;
 		// Have to move all the items
-		for (int c = 0; c < items.size(); c++){
-			items[c].moveItem(
+		for (auto &item : items){
+			item.moveItem(
 				olc::vi2d(
-					items[c].getLeftUpperCorner().x + offset_x,
-					items[c].getLeftUpperCorner().y + offset_y
+					item.getLeftUpperCorner().x + offset_x,
+					item.getLeftUpperCorner().y + offset_y
 				)
 			);
 		}
+		return true;
+	}
+
+	bool moveItemByOffset(olc::vi2d offset){
+		// Have to move all the items
+		for (auto &item : items){
+			item.moveItemByOffset(offset);
+		}
+		coordinates += offset;
 		return true;
 	}
 

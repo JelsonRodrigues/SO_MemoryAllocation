@@ -39,6 +39,12 @@ public:
 		return true;
 	}
 
+	bool moveItemByOffset(olc::vi2d offset) {
+		coordinates.x += offset.x;
+		coordinates.y += offset.y;
+		return true;
+	}
+
 	olc::vi2d getLeftUpperCorner() const {
 		return coordinates;
 	}

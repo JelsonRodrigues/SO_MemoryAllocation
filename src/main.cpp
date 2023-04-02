@@ -5,6 +5,8 @@
 #include "include/line.hpp"
 #include "include/bin.hpp"
 #include "include/movingitem.hpp"
+#include "include/staticPatitionSameSize.hpp"
+#include "include/staticPatitionVariableSize.hpp"
 
 #include <iostream>
 #include <iomanip>
@@ -14,44 +16,40 @@
 #include <string>
 #include <vector>
 
-class BinPacking2D : public olc::PixelGameEngine
+class MemoryAllocation : public olc::PixelGameEngine
 {
 public:
-	uint32_t bin_width = 128;
-	uint32_t bin_height = 256;
-	uint32_t number_of_partitions_small = 8;
-	uint32_t number_of_partitions_medium = 4;
-	uint32_t number_of_partitions_large = 2;
-	uint32_t total_memory = 0;
-	uint32_t used_memory = 0;
-	uint32_t internal_fragmentation = 0;
-	std::vector<Bin> bins;
+	uint32_t bins_width = 128;
+	uint32_t bins_height = 64;
+	StaticPartitionSameSize static_partitions = StaticPartitionSameSize(bins_width, bins_height, 8);
+	StaticPartitionVariableSize variable_partitions = StaticPartitionVariableSize(bins_width, bins_height, 10, 5, 3);
 	std::vector<Item> items_buffer;
 	std::vector<MovingItem> items_buffer_moving_items;
 	uint32_t max_Y_value_in_buffer = 0;
 
 	bool toggleHelp = true;
 
-	BinPacking2D()
+	MemoryAllocation()
 	{
-		sAppName = "BinPacking2D";
+		sAppName = "MemoryAllocation";
+
+		// Position the memory in screen
+		uint32_t vertical_offset = bins_height + 35;
+		static_partitions.move(olc::vi2d(15, ScreenHeight() / 2 + bins_height / 2));
+		variable_partitions.move(static_partitions.upper_left_position + olc::vi2d(0, vertical_offset));
 	}
 
 public:
 	bool Draw(float fElapsedTime)
-	{
-		Clear(olc::VERY_DARK_BLUE);
+	{	
+		// Background Color
+		Clear(olc::Pixel(189, 183, 107));
+		// Clear(olc::Pixel(142, 62, 255));
+		// Clear(olc::Pixel(104, 159, 85));
 
-		internal_fragmentation = 0;
-		used_memory = 0;
-		total_memory = 0;
-		for(auto& bin : bins)
+		for(auto& bin : static_partitions.bins)
 		{
-			if (bin.getAreaFree() != bin.getArea()) {
-				internal_fragmentation += bin.getAreaFree();
-			}
-			used_memory += bin.getAreaUsed();
-			total_memory += bin.getArea();
+			// Drawing the bin
 			olc::vd2d binTLbefore = bin.getLeftUpperCorner() - olc::vi2d(1,1);
 			olc::vd2d binBRbefore = bin.getRightBottomCorner() + olc::vi2d(1,1);
 
@@ -64,14 +62,17 @@ public:
 			FillRect(binTLafter, binBRafter - binTLafter, olc::BLACK);
 			DrawRect(binTLafter, binBRafter - binTLafter, olc::WHITE);
 
-			if (vScale.x >= 0.5) {
-				olc::vi2d binBL(binTLafter.x, binBRafter.y + 10);
+			// Draw bin usage
+			if (vScale.x * bin.getSize().x >= 40.0) {
+				olc::vi2d binBL((binTLafter.x + binBRafter.x) / 2.0 - 20, binBRafter.y + 5);
 				double percentage = 100.0 * ((double)bin.getArea() - (double)bin.getAreaFree()) / (double)bin.getArea();
 				std::stringstream percentageStream;
 				percentageStream << std::fixed << std::setprecision(2) << percentage;
 				std::string binPercentageUsage = percentageStream.str() + "%";
 				DrawString(binBL, binPercentageUsage, olc::YELLOW, 1);
 			}
+
+			// Drawing the items inside the bin
 			olc::vi2d itemTLafter;
 			olc::vi2d itemBRafter;
 			for(const auto& item : bin.getItemsInBin())
@@ -82,6 +83,43 @@ public:
 			}
 		}
 
+		for(auto& bin : variable_partitions.bins)
+		{
+			// Drawing the bin
+			olc::vd2d binTLbefore = bin.getLeftUpperCorner() - olc::vi2d(1,1);
+			olc::vd2d binBRbefore = bin.getRightBottomCorner() + olc::vi2d(1,1);
+
+			olc::vi2d binTLafter;
+			olc::vi2d binBRafter;
+
+			WorldToScreen(binTLbefore, binTLafter);
+			WorldToScreen(binBRbefore, binBRafter);
+
+			FillRect(binTLafter, binBRafter - binTLafter, olc::BLACK);
+			DrawRect(binTLafter, binBRafter - binTLafter, olc::WHITE);
+
+			// Draw bin usage
+			if (vScale.x * bin.getSize().x >= 40.0) {
+				olc::vi2d binBL((binTLafter.x + binBRafter.x) / 2.0 - 20, binBRafter.y + 5);
+				double percentage = 100.0 * ((double)bin.getArea() - (double)bin.getAreaFree()) / (double)bin.getArea();
+				std::stringstream percentageStream;
+				percentageStream << std::fixed << std::setprecision(2) << percentage;
+				std::string binPercentageUsage = percentageStream.str() + "%";
+				DrawString(binBL, binPercentageUsage, olc::YELLOW, 1);
+			}
+
+			// Drawing the items inside the bin
+			olc::vi2d itemTLafter;
+			olc::vi2d itemBRafter;
+			for(const auto& item : bin.getItemsInBin())
+			{
+				WorldToScreen(item.getLeftUpperCorner(), itemTLafter);
+				WorldToScreen(item.getRightBottomCorner(), itemBRafter);
+				FillRect(itemTLafter, itemBRafter - itemTLafter, item.getColor());
+			}
+		}
+
+		// Draw the buffer of items
 		olc::vi2d bufferTLbefore = {0,0};
 		olc::vi2d bufferTLafter =  {0,0};
 		olc::vi2d bufferBRbefore = {0,0};
@@ -106,6 +144,8 @@ public:
 			}
 		}
 
+
+		// Draw the moving items
 		if (!items_buffer_moving_items.empty()){
 			// All items are in final position?
 			bool final_position_items = true;
@@ -126,7 +166,8 @@ public:
 				items_buffer_moving_items.clear();
 			}
 		}
-			
+		
+		// Draw the rectangle of creation of an item
 		if(vRectDraw)
 		{
 			olc::vi2d newItemTLafter;
@@ -190,17 +231,37 @@ public:
             DrawString(0, 130, "====== Insere Fila ======",         titleColor, 1);
             DrawString(0, 140, "U - Best Fit", color, 1);
             DrawString(0, 150, "I - First Fit", color, 1);
+			DrawString(0, 160, "O - Worst Fit", color, 1);
+			DrawString(0, 170, "====== Remove Fila ======",         titleColor, 1);
+			DrawString(0, 180, "BACK - Remover um item", color, 1);
+			DrawString(0, 190, "R - Resetar Memorias", color, 1);
         }
 
+		// Draw the static_paritions stats
+		DrawString(ScreenWidth() - 153, 10, "Static Partition", olc::DARK_BLUE, 1);
+
 		std::stringstream percentageStream;
-		percentageStream << std::fixed << std::setprecision(2) << (double) used_memory * 100.0 / (double) total_memory;
+		percentageStream << std::fixed << std::setprecision(2) << (double) static_partitions.used_memory * 100.0 / (double) static_partitions.total_memory;
 		std::string memoryPercentageUsage = "Usage: " + percentageStream.str() + "%";
 		DrawString(ScreenWidth() - 120, 20, memoryPercentageUsage, olc::YELLOW, 1);
 
-		std::stringstream percentageStream2;
-		percentageStream2 << std::fixed << std::setprecision(2) << (double) internal_fragmentation * 100.0 / (double) total_memory;
-		std::string fragmentationPercentage = "Internal Fragmentation: " + percentageStream2.str() + "%";
-		DrawString(ScreenWidth() - 256, 10, fragmentationPercentage, olc::YELLOW, 1);
+		percentageStream.str(std::string());
+		percentageStream << std::fixed << std::setprecision(2) << (double) static_partitions.internal_fragmentation * 100.0 / (double) static_partitions.total_memory;
+		std::string fragmentationPercentage = "Internal Fragmentation: " + percentageStream.str() + "%";
+		DrawString(ScreenWidth() - 256, 30, fragmentationPercentage, olc::YELLOW, 1);
+
+		// Draw the variable_paritions stats
+		DrawString(ScreenWidth() - 168, 40, "Variable Partition", olc::DARK_BLUE, 1);
+
+		percentageStream.str(std::string());
+		percentageStream << std::fixed << std::setprecision(2) << (double) variable_partitions.used_memory * 100.0 / (double) variable_partitions.total_memory;
+		memoryPercentageUsage = "Usage: " + percentageStream.str() + "%";
+		DrawString(ScreenWidth() - 120, 50, memoryPercentageUsage, olc::YELLOW, 1);
+
+		percentageStream.str(std::string());
+		percentageStream << std::fixed << std::setprecision(2) << (double) variable_partitions.internal_fragmentation * 100.0 / (double) variable_partitions.total_memory;
+		fragmentationPercentage = "Internal Fragmentation: " + percentageStream.str() + "%";
+		DrawString(ScreenWidth() - 256, 60, fragmentationPercentage, olc::YELLOW, 1);
 
         // DrawString(ScreenWidth() - 635, ScreenHeight() - 20, "Jelson Rodrigues - Juathan Duarte - Lucas Morais", olc::Pixel(255,255,255,123), 1);
         // DrawString(ScreenWidth() - 660, ScreenHeight() - 10, "2D BinPacking - github.com/lucaszm7/AED3_Bin_Packing", olc::Pixel(255,255,255,123), 1);
@@ -221,11 +282,12 @@ public:
 			vRectDraw = true;
             vRectStart = vMouseWorld;
 			vRectNow = vRectStart;
+			vRectNow.y += bins_height;
         }
 
         if(GetMouse(1).bHeld)
         {
-            vRectNow = vMouseWorld;
+            vRectNow.x = vMouseWorld.x;
         }
 		
 		if (GetKey(olc::Key::A).bHeld)	vOffset -= (olc::vd2d(2.0, 0.0) / vScale) * fElapsedTime * 100;
@@ -233,63 +295,52 @@ public:
 		if (GetKey(olc::Key::W).bHeld) 	vOffset -= (olc::vd2d(0.0, 2.0) / vScale) * fElapsedTime * 100;
 		if (GetKey(olc::Key::S).bHeld)	vOffset += (olc::vd2d(0.0, 2.0) / vScale) * fElapsedTime * 100;
 
+		if (GetKey(olc::Key::R).bPressed) {
+			static_partitions.clearAll();
+			variable_partitions.clearAll();
+		}
+
 		// Add 1d items to the buffer
 		if (GetKey(olc::Key::B).bPressed) {
-			addItemToBuffer(Item(bin_height,  (rand() % (bin_width / 1) + 1)));
+			addItemToBuffer(Item(bins_height,  (rand() % (bins_width / 1) + 1)));
 		}
 		if (GetKey(olc::Key::N).bPressed) {
-			addItemToBuffer(Item(bin_height,  (rand() % (bin_width / 2) + 1)));
+			addItemToBuffer(Item(bins_height,  (rand() % (bins_width / 2) + 1)));
 		}
 		if (GetKey(olc::Key::M).bPressed) {
-			addItemToBuffer(Item(bin_height,  (rand() % (bin_width / 4) + 1)));
+			addItemToBuffer(Item(bins_height,  (rand() % (bins_width / 4) + 1)));
 		}
 
 		// Remove a random item
 		if (GetKey(olc::Key::BACK).bPressed) {
-			uint32_t index = rand() % bins.size();
-			uint32_t bins_checked = 0;
-			while (bins_checked < bins.size()){
-				if (bins[(index + bins_checked) % bins.size()].getItemsInBin().size() > 0) {
-					bins[(index + bins_checked) % bins.size()].restore();
-					std::cout << "Removed" << "\n";
-					break;
-				}
-				++bins_checked;
+			if (static_partitions.removeRandom()){ 
+				std::cout << "Removed from static" << "\n";
+			}
+			if (variable_partitions.removeRandom()){ 
+				std::cout << "Removed from variable" << "\n";
 			}
 		}
 
 		// Add all items in the buffer to the bins with best fit strategy
 		if (GetKey(olc::Key::U).bPressed) {
-			for (auto& item: items_buffer){
-				olc::vi2d position_before_insert = item.getLeftUpperCorner();
-				olc::vi2d inserted_position;
-				if (bestFit(item, inserted_position)){
-					std::cout << "Inserted \n";
-					item.moveItem(position_before_insert); //reset the item postition
-					items_buffer_moving_items.push_back(MovingItem(item, inserted_position, rand() % 1000 + 500));
-				}
-				else {
-					std::cout << "Fail to insert item \n";
-				}
-			}
+			insert(&MemoryAllocation::bestFitStatic);
+			insert(&MemoryAllocation::bestFitVariable);
 			items_buffer.clear();
 			max_Y_value_in_buffer = 0;
 		}
 
 		// Add all items in the buffer to the bins with first fit strategy
 		if (GetKey(olc::Key::I).bPressed) {
-			for (auto& item: items_buffer){
-				olc::vi2d position_before_insert = item.getLeftUpperCorner();
-				olc::vi2d inserted_position;
-				if (firstFit(item, inserted_position)){
-					std::cout << "Inserted \n";
-					item.moveItem(position_before_insert); //reset the item postition
-					items_buffer_moving_items.push_back(MovingItem(item, inserted_position, rand() % 1000 + 500));
-				}
-				else {
-					std::cout << "Fail to insert item \n";
-				}
-			}
+			insert(&MemoryAllocation::firstFitStatic);
+			insert(&MemoryAllocation::firstFitVariable);
+			items_buffer.clear();
+			max_Y_value_in_buffer = 0;
+		}
+
+		// Add all items in the buffer to the bins with worst fit strategy
+		if (GetKey(olc::Key::O).bPressed) {
+			insert(&MemoryAllocation::worstFitStatic);
+			insert(&MemoryAllocation::worstFitVariable);
 			items_buffer.clear();
 			max_Y_value_in_buffer = 0;
 		}
@@ -310,17 +361,6 @@ public:
 
 	bool OnUserCreate() override
 	{
-		for (uint32_t i = 0; i < number_of_partitions_small; ++i){
-			createNewBin(bin_width / 4, bin_height);
-		}
-		for (uint32_t i = 0; i < number_of_partitions_medium; ++i){
-			createNewBin(bin_width / 2, bin_height);
-		}
-		for (uint32_t i = 0; i < number_of_partitions_large; ++i){
-			createNewBin(bin_width / 1, bin_height);
-		}
-
-
 		return true;
 	}
 
@@ -335,10 +375,10 @@ public:
 
 	bool addItemToBuffer(Item item){
 		if (items_buffer.size() == 0) {
-			item.moveItem(olc::vi2d(0, -bin_height));
+			item.moveItem(olc::vi2d(0, -bins_height));
 		}
 		else {
-			item.moveItem(olc::vi2d(items_buffer[items_buffer.size() - 1].getRightBottomCorner().x + 10, -bin_height));	
+			item.moveItem(olc::vi2d(items_buffer[items_buffer.size() - 1].getRightBottomCorner().x + 10, -bins_height));	
 		}
 		items_buffer.push_back(item);
 		if (item.getHeight() > max_Y_value_in_buffer) max_Y_value_in_buffer = item.getHeight();
@@ -375,68 +415,48 @@ protected:
 		s.y = (int)((w.y - vOffset.y) * vScale.y);
 	}
 
-	// First fit iterates trhought all bins and tries to add in all of them
-	bool firstFit(Item item, olc::vi2d &insertedPosition){
-		if (item.getHeight() > bin_height || item.getWidth() > bin_width) return false;
-		for (int c = 0; c < bins.size(); c++){
-			if (bins[c].insert(item)) {
-				insertedPosition = bins[c].getItemsInBin()[bins[c].getItemsInBin().size() - 1].getLeftUpperCorner();
-				return true;
+	// Receive the poiter to the insertion function
+	void insert(bool (MemoryAllocation::*insert_function)(Item, olc::vi2d&)){
+		for (auto& item: items_buffer){
+			olc::vi2d position_before_insert = item.getLeftUpperCorner();
+			olc::vi2d inserted_position;
+			if ((this->*insert_function)(item, inserted_position)){
+				std::cout << "Inserted \n";
+				item.moveItem(position_before_insert); //reset the item postition
+				items_buffer_moving_items.push_back(MovingItem(item, inserted_position, rand() % 1000 + 500));
+			}
+			else {
+				std::cout << "Fail to insert item \n";
 			}
 		}
-
-		return false;
 	}
 
-	// Best fit add to the bin that will have the least amount of space unused after the insertion
-	bool bestFit(Item item, olc::vi2d &insertedPosition){
-		if (item.getHeight() > bin_height || item.getWidth() > bin_width) return false;
-
-
-		int64_t index = -1;
-		uint64_t min_space_left = UINT64_MAX;
-		for (int c = 0; c < bins.size(); c++){
-			if (bins[c].canFit(item)) {
-				if (bins[c].getAreaFree() - item.getArea() < min_space_left){
-					min_space_left = bins[c].getAreaFree() - item.getArea();
-					index = c;
-				}
-			}
-		}
-
-		if (index >= 0) {
-			if (bins[index].insert(item)){
-				insertedPosition = bins[index].getItemsInBin()[bins[index].getItemsInBin().size() - 1].getLeftUpperCorner();
-				return true;
-			}
-		}
-
-		return false;
+	bool firstFitStatic(Item item, olc::vi2d &insertedPosition){
+		return static_partitions.firstFit(item, insertedPosition);
+	}
+	bool firstFitVariable(Item item, olc::vi2d &insertedPosition){
+		return variable_partitions.firstFit(item, insertedPosition);
 	}
 
-	bool createNewBin(uint32_t bin_width, uint32_t bin_height ) {
-		// Create new Bin
-		Bin new_bin = Bin(bin_height, bin_width);
-		
-		uint32_t offset_between_bins = 1;
-
-		if (bins.size() > 0){
-			new_bin.moveItem(olc::vi2d((bins[bins.size() -1].getRightBottomCorner().x + offset_between_bins), (uint32_t) ScreenHeight() / 2 - bin_height / 2));
-		}
-		else {
-			new_bin.moveItem(olc::vi2d(0, (uint32_t) ScreenHeight() / 2 - bin_height / 2));
-		}
-		bins.push_back(new_bin);
-
-		return true;
+	bool bestFitStatic(Item item, olc::vi2d &insertedPosition){
+		return static_partitions.bestFit(item, insertedPosition);
+	}
+	bool bestFitVariable(Item item, olc::vi2d &insertedPosition){
+		return variable_partitions.bestFit(item, insertedPosition);
 	}
 
+	bool worstFitStatic(Item item, olc::vi2d &insertedPosition){
+		return static_partitions.worstFit(item, insertedPosition);
+	}
+	bool worstFitVariable(Item item, olc::vi2d &insertedPosition){
+		return variable_partitions.worstFit(item, insertedPosition);
+	}
 };
 
 int main()
 {
 	{
-		BinPacking2D app;
+		MemoryAllocation app;
 		if (app.Construct(640, 360, 2, 2)){
 			app.Start();
 		}
