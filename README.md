@@ -1,4 +1,11 @@
-# AED3 Bin Packing Problem - Trabalho Final
+# Alocação de memória SO
+
+Visualização dos modos de particionamento de memória estático e variável utilizados pelo Sistema Operacional para realização da alocação de memória. <br>
+Este projeito foi feito utilizando como base a implementação [BinPacking2D](https://github.com/lucaszm7/AED3_Bin_Packing). Que utiliza a engine [olcPixelGameEngine](https://github.com/OneLoneCoder/olcPixelGameEngine).
+
+
+## Demo
+https://github.com/JelsonRodrigues/SO_MemoryAllocation/assets/demo.mp4
 
 ## Build: Linux
  1. Instale as dependências
@@ -49,14 +56,12 @@ Q -> zoom out <br>
 E -> zoom in <br>
 W, A, S, D -> move screen<br>
 C -> reset screen position and zoom<br>
-H -> Creates a big random 2D rectangle <br>
-J -> Creates a medium random 2D rectangle <br>
-K -> Creates a small random 2D rectangle <br>
-L -> Creates a smaller random 2D rectangle <br>
 B -> Creates a big random 1D rectangle <br>
 N -> Creates a medium random 1D rectangle <br>
 M -> Creates a small random 1D rectangle <br>
 U -> Insert rectangles with best fit <br>
 I -> Insert rectangles with first fit <br>
-O -> Insert rectangles with next fit <br>
+O -> Insert rectangles with worst fit <br>
+BACKSPACE -> Remove one random item <br>
+R -> Clear the memory <br>
 
