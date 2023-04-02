@@ -5,7 +5,7 @@ Este projeito foi feito utilizando como base a implementação [BinPacking2D](ht
 
 
 ## Demo
-https://github.com/JelsonRodrigues/SO_MemoryAllocation/assets/demo.mp4
+https://github.com/JelsonRodrigues/SO_MemoryAllocation/tree/master/assets/demo.mp4
 
 ## Build: Linux
  1. Instale as dependências
